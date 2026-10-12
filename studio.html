@@ -34,12 +34,15 @@
 <script src="src/karaoke.js"></script>
 <script src="src/cast_heroes.js"></script>
 <script src="src/cast_robots.js"></script>
+<script src="src/world.js"></script>
 <script src="src/timeline.js"></script>
 <!-- reference sheets (standalone loops) -->
 <script src="src/sheets.js"></script>
 <script src="src/bench.js"></script>
 <!-- your video: add a script per scene file, in order -->
-<script src="src/scenes/test_fx.js"></script>
+<script src="src/scenes/common.js"></script>
+<script src="src/scenes/ch0_intro.js"></script>
+<script src="src/scenes/ch1_verseA.js"></script>
 <script>
   // Open studio.html?loop=emotions (or views) to scrub a standalone loop instead of the video.
   const q = new URLSearchParams(location.search).get('loop'); if (q && LOOPS[q]) window.LOOP = LOOPS[q];
