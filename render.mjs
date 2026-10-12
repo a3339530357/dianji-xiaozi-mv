@@ -70,12 +70,14 @@ const gpu = args['soft-gl'] ? ['--use-angle=swiftshader', '--enable-unsafe-swift
 const gpuEnv = wslGPU ? { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/wsl/lib', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU_NAME || 'NVIDIA' } : {};
 // Ubuntu 23.10+ blocks Chrome's user-namespace sandbox; headless rendering of local files doesn't need it.
 const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
-const browser = await puppeteer.launch({
+// Pages in one browser share a renderer process, so parallel workers each get their own browser (else they don't scale).
+const launch = () => puppeteer.launch({
   executablePath: CHROME, headless: CHROME.includes('headless-shell') ? 'shell' : true, protocolTimeout: 0, env: { ...process.env, ...gpuEnv },
   args: [...sandbox, '--allow-file-access-from-files', '--ignore-gpu-blocklist', ...gpu, '--enable-gpu-rasterization', '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
 });
-async function openPage(tag = '') {
-  const page = await browser.newPage();
+const browser = await launch(), extra = [];
+async function openPage(tag = '', br = browser) {
+  const page = await br.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
   await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'networkidle0' });
@@ -90,6 +92,16 @@ const frameOf = async (page, t, type, q) => {
   const url = await page.evaluate((t, type, q) => window.renderAt(t, type, q), t, type, q);
   return Buffer.from(url.slice(url.indexOf(',') + 1), 'base64');
 };
+// one page per worker, worker 0 in the main browser and the rest in their own; returns once all are ready
+async function workerPages(n) {
+  const t0 = Date.now();
+  const pages = await Promise.all(Array.from({ length: n }, async (_, w) => {
+    const br = w ? await launch() : browser; if (w) extra.push(br);
+    return openPage('#' + w, br);
+  }));
+  console.log(`${n} workers ready in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  return pages;
+}
 // the length of whatever is being rendered: a loop's .len, or the video's duration
 const lengthOf = page => page.evaluate(() => window.LOOP ? window.LOOP.len : DUR);
 
@@ -116,9 +128,9 @@ if (args.sheet || args.strip) {
   const probe = await openPage(), len = await lengthOf(probe); await probe.close();
   const [a, b] = args.range ? span(args.range) : [0, len], n = Math.round((b - a) * fps);
   const out = args.out || `out/${args.loop ? 'loop_' + args.loop : 'png'}`, workers = +(args.workers || 3); mkdirSync(out, { recursive: true });
+  const pages = await workerPages(workers);
   let next = 0; const start = Date.now();
-  await Promise.all(Array.from({ length: workers }, async (_, w) => {
-    const page = await openPage('#' + w);
+  await Promise.all(pages.map(async page => {
     while (next < n) { const i = next++; writeFileSync(`${out}/f${String(i).padStart(4, '0')}.png`, await frameOf(page, a + i / fps, 'image/png')); }
   }));
   console.log(`${n} frames → ${out}  (${((Date.now() - start) / n).toFixed(0)} ms/frame)`);
@@ -130,9 +142,9 @@ if (args.sheet || args.strip) {
   const first = Math.round(a * fps), last = Math.min(Math.ceil(len * fps) - 1, Math.round(b * fps) - 1);
   const todo = []; for (let i = first; i <= last; i++) { const f = `${FRAMES_DIR}/f${String(i).padStart(5, '0')}.jpg`; if (!existsSync(f) || statSync(f).size < 1000) todo.push(i); }
   console.log(`${todo.length} frames to render (${last - first + 1 - todo.length} already done), ${workers} workers`);
+  const pages = await workerPages(workers);
   let next = 0, done = 0; const start = Date.now();
-  await Promise.all(Array.from({ length: workers }, async (_, w) => {
-    const page = await openPage('#' + w);
+  await Promise.all(pages.map(async page => {
     while (next < todo.length) {
       const i = todo[next++], f = `${FRAMES_DIR}/f${String(i).padStart(5, '0')}.jpg`;
       const buf = await frameOf(page, i / fps, 'image/jpeg', .94);
@@ -163,4 +175,4 @@ if (args.sheet || args.strip) {
 } else {
   console.log('nothing to do: see the usage notes at the top of render.mjs');
 }
-await browser.close();
+await Promise.all([browser, ...extra].map(b => b.close()));
