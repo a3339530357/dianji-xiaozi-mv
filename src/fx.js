@@ -98,7 +98,7 @@ function dust(cx, cy, k, o = {}) {
   boilSeed('dust' + (o.key ?? 0));
   const n = o.n ?? 16, reach = o.reach ?? 1400;
   for (let i = 0; i < n; i++) {
-    const a = i / n * TAU + hash(i * 2.3) * .5, d = reach * easeOut(k) * (.25 + hash(i * 4.7) * .5), r = (60 + 520 * k) * (.6 + hash(i * 8.1) * .6);
+    const a = i / n * TAU + hash(i * 2.3) * .5, d = reach * easeOut(k) * (.25 + hash(i * 4.7) * .5), r = (60 + 520 * k) * (.6 + hash(i * 8.1) * .6) * (o.size ?? 1);
     paint(ellPts(cx + Math.cos(a) * d, cy + Math.sin(a) * d * .55 - k * 120, r, r * .8, 18, r * .06), { wash: mixCol('#CFC4B0', '#8E8579', hash(i * 5.5) * .6), ink: PAL.ink, sw: .7 });
   }
 }

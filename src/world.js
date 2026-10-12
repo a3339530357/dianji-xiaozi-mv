@@ -8,7 +8,7 @@ const SKY = { night: '#1B2150', deep: '#121640', violet: '#3B2E6E', dawn1: '#F4A
 function sky(t, o = {}) {
   const d = clamp(o.dawn || 0);
   boilSeed('sky');
-  paint(rectPts(-400, -1400, W + 800, H + 1800), { wash: mixCol(SKY.night, SKY.dawn2, d * .85), ink: null });
+  paint(rectPts(-600, -1400, 4400, H + 1800), { wash: mixCol(SKY.night, SKY.dawn2, d * .85), ink: null });   // wide: the chase pans out to x ~3400
   if (d > .02) paint(ellPts(960, 1100, 1900, 700, 30, 20), { fill: SKY.rose, fillOp: 140 * d, bleed: .25, tex: .5, ink: null });
   if (o.vortex) vortex(t, o.vortex);
 }
@@ -108,7 +108,7 @@ function capsule(x, y, s, o = {}) {
   const op = clamp(o.open || 0), lift = op * 70 * s, tilt = -op * .9;
   paint(rrPts(-80 * s, -2 * s, 160 * s, 50 * s, 24 * s), { wash: '#E8ECF2', ink: PAL.ink, sw: 1.2 });   // bottom half
   push(); translate(-80 * s, 0); rotate(tilt); translate(80 * s, -lift * .2);
-  paint(rrPts(-80 * s, -50 * s, 160 * s, 52 * s, 24 * s), { wash: '#E8ECF2', ink: PAL.ink, sw: 1.2 });   // the lid
+  paint(rrPts(-80 * s, -50 * s, 160 * s, 52 * s, 24 * s), { wash: mixCol('#E8ECF2', '#9AA3B5', op * .7), ink: PAL.ink, sw: 1.2 });   // the lid (greyer once open, so it recedes)
   paint([[-20 * s, -46 * s], [6 * s, -46 * s], [-4 * s, -26 * s], [14 * s, -26 * s], [-18 * s, 0], [-8 * s, -20 * s], [-26 * s, -20 * s]], { wash: EL.yellow, ink: PAL.ink, sw: .8 });
   pop();
   paint(rectPts(-80 * s, -6 * s, 160 * s, 10 * s), { wash: EL.cyan, ink: null });

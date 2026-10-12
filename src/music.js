@@ -38,8 +38,8 @@ const LY = [
 // Doubled words that get one visual hit per character: [first character's time, step between characters].
 // Placed on the eighth-note grid nearest the measured vocal onsets; check them against the audio in a preview clip.
 const SYL = {
-  shan: [bt(46), BEAT / 2],    // 闪闪闪闪 25.59 …
-  bian: [bt(50.5) + BEAT * 2, BEAT / 2],   // 变变变变 ~28.9 …
+  shan: [bt(44), BEAT / 2],    // 闪闪闪闪 24.47, 24.75, 25.03, 25.31
+  bian: [bt(52), BEAT / 2],    // 变变变变 28.92, 29.20, 29.48, 29.75
   hula1: [bt(62), BEAT / 2],   // 呼啦呼啦 34.48 …
   quan: [33.10, (bt(61) - 33.10) / 4],   // 火 星 大 力 拳: five slams from 33.10, the last (拳) on the punch, 33.92
 };
