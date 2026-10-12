@@ -85,8 +85,9 @@ async function openPage(tag = '', br = browser) {
   const page = await br.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
-  await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'networkidle0' });
-  await page.waitForFunction('window.ready === true', { timeout: 60000 });
+  // slow CPU-only machines (GitHub runners): setup can take minutes
+  await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'networkidle0', timeout: 300000 });
+  await page.waitForFunction('window.ready === true', { timeout: 300000 });
   if (args.loop) {
     const ok = await page.evaluate(name => { if (!LOOPS[name]) return false; window.LOOP = LOOPS[name]; return true; }, args.loop);
     if (!ok) { console.error(`no loop named "${args.loop}"`); process.exit(1); }
@@ -100,10 +101,12 @@ const frameOf = async (page, t, type, q) => {
 // one page per worker, worker 0 in the main browser and the rest in their own; returns once all are ready
 async function workerPages(n) {
   const t0 = Date.now();
-  const pages = await Promise.all(Array.from({ length: n }, async (_, w) => {
+  // opened one after another: their CPU-heavy setups (paper, grain) starve each other on small machines
+  const pages = [];
+  for (let w = 0; w < n; w++) {
     const br = w ? await launch() : browser; if (w) extra.push(br);
-    return openPage('#' + w, br);
-  }));
+    pages.push(await openPage('#' + w, br));
+  }
   console.log(`${n} workers ready in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   return pages;
 }
