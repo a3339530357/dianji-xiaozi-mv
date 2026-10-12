@@ -25,3 +25,17 @@
   };
   for (const [k, f] of Object.entries(B)) { LOOPS[k] = t => { f(t); }; LOOPS[k].len = 2; }
 })();
+
+// Model sheet for the new cast (node render.mjs --loop=castSheet --sheet=0.3,1.1 ...): not part of the video.
+LOOPS.castSheet = t => {
+  paint(rectPts(-60, -60, W + 120, H + 120), { wash: '#DCE6F0', ink: null });
+  electro(260, 520, 18, { ...feel('proud', t), aR: 1.1, watchGlow: .8, boilKey: 'e1' });
+  electro(260, 1000, 18, { ...feel('determined', t), view: 'side', boilKey: 'e2', wind: 1.5 });
+  clawd(620, 520, 18, { ...feel('surprised', t), hat: 'chef', boilKey: 'c1' });
+  kaka(560, 1000, 22, { eyes: 'happy', mouth: 'laugh', arms: [1.2, .2], blush: .8, boilKey: 'k1' }); kaka(700, 760, 14, { eyes: 'open', look: .6, boilKey: 'k2' });
+  kitten(900, 520, 26, { eyes: 'open' }); kitten(900, 1000, 26, { sit: 1, eyes: 'closed' });
+  villain(1300, 1000, 22, { mood: 'angry', arms: [.3, 1.4], claws: .8 });
+  villain(1750, 1000, 14, { mood: 'cry', arms: [-.6, -.6] });
+  minion('gear', 1580, 380, 22); minion('drone', 1760, 380, 22, { evil: true }); minion('dog', 1580, 560, 22, { evil: true }); minion('can', 1780, 560, 22);
+};
+LOOPS.castSheet.len = 2;
