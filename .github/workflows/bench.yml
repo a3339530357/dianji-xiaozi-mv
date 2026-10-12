@@ -1,8 +1,10 @@
 # 测速：在 GitHub 的免费机器上（没有显卡，Chrome 用 SwiftShader 软件模拟 WebGL）渲染示例，看每帧多久、开几路合适。
-# 手动触发：gh workflow run bench.yml
+# 改动本文件并推送时自动跑；也可手动触发：gh workflow run bench.yml
 name: bench
 
 on:
+  push:
+    paths: ['.github/workflows/bench.yml']
   workflow_dispatch:
     inputs:
       range:
@@ -30,7 +32,7 @@ jobs:
         run: |
           for w in 1 2 3 4; do
             echo "=== $w workers"
-            node render.mjs --soft-gl --png --range=${{ inputs.range }} --workers=$w --out=out/bench_w$w | grep -E 'ready|frames'
+            node render.mjs --soft-gl --png --range=${{ inputs.range || '4:6' }} --workers=$w --out=out/bench_w$w | grep -E 'ready|frames'
           done
       - uses: actions/upload-artifact@v4
         with: { name: bench-check, path: out/check, retention-days: 7 }
