@@ -12,6 +12,15 @@
     b_lines: () => grid(24, (x, y, i) => inkLine([[x - 130, y], [x - 40, y - 60 + i % 5 * 10], [x + 50, y + 50], [x + 130, y - 20]], 1.4)),
     b_glow: () => grid(24, (x, y) => glow(x, y, 160, '#FFD84A', 1)),
     b_letters: () => { grid(24, (x, y) => letter('火', x, y, 120, '#E2492F')); },
+    b_fsSame: () => { for (let i = 0; i < 24; i++) { boilSeed('s' + i); paint(ellPts(960, 540, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: .2, ink: null }); } },
+    b_fs4: () => grid(4, (x, y) => paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: .2, ink: null })),
+    b_fsFlat: () => grid(24, (x, y) => paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: 0, tex: 0, border: 0, ink: null })),
+    b_fb24: () => { for (let i = 0; i < 24; i++) { boilSeed('F' + i); paint(ellPts(960, 540, 1000, 400, 40, 20), { fill: PAL.sky, fillOp: 30, bleed: .25, tex: .6, ink: null }); } },
+    b_fsBleed: () => grid(24, (x, y) => paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: .2, tex: 0, border: 0, ink: null })),
+    b_fsTex: () => grid(24, (x, y) => paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: 0, tex: .4, border: 0, ink: null })),
+    b_fsBorder: () => grid(24, (x, y) => paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: 0, tex: 0, border: .35, ink: null })),
+    b_fsFlush: () => grid(24, (x, y) => { paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: .2, ink: null }); flushBrush(); }),
+    b_fsFlush4: () => grid(24, (x, y, i) => { paint(ellPts(x, y, 130, 100, 24, 6), { fill: PAL.sky, fillOp: 120, bleed: .2, ink: null }); if (i % 4 === 3) flushBrush(); }),
     b_clawd: () => grid(6, (x, y) => clawd(x, y + 100, 22, feel('happy', T))),
   };
   for (const [k, f] of Object.entries(B)) { LOOPS[k] = t => { f(t); }; LOOPS[k].len = 2; }

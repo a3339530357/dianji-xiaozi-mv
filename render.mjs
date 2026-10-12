@@ -13,7 +13,8 @@
 //     node render.mjs --encode --out=out/video.mp4                                           out/frames → MP4
 //   Standalone loops (LOOPS in the page): add --loop=<name> to any of the above (times are then loop times), or
 //     node render.mjs --loop=emotions --png --out=out/loop_emotions                          one cycle as PNGs (for GIFs)
-//   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=24,
+//   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=30,
+//   --ci (no GPU: llvmpipe + CPU 2D canvas, needs chrome-headless-shell via --chrome or CHROME_PATH),
 //   --chrome=<path to Chrome/Chromium>.
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
@@ -26,8 +27,11 @@ const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = 
 // WSL2: WebGL only reaches the real GPU through Mesa's d3d12 driver, and only in Playwright's chrome-headless-shell
 // (google-chrome gets no WebGL context with --use-angle=gl). Without these, Chrome falls back to llvmpipe (CPU).
 const isWSL = process.platform === 'linux' && readFileSync('/proc/sys/kernel/osrelease', 'utf8').toLowerCase().includes('microsoft');
-const wslGPU = isWSL && !args['soft-gl'] && !args['gpu-angle'];
-const CHROMES = [args.chrome, process.env.CHROME_PATH, ...(wslGPU ? playwrightChromes('chromium_headless_shell') : []),
+const wslGPU = isWSL && !args['soft-gl'] && !args['gpu-angle'] && !args.ci;
+// --ci: no GPU (GitHub runners). WebGL on Mesa llvmpipe through chrome-headless-shell, and 2D canvases rasterized on the
+// CPU: p5.brush paints every watercolor fill on a 2D mask canvas, and an emulated-GPU 2D canvas makes each fill crawl
+// (24 small fills: ~5 s → ~0.6 s; six Clawds: ~10 s → ~1.5 s). On a real GPU the same switch is slower, so it's CI-only.
+const CHROMES = [args.chrome, process.env.CHROME_PATH, ...(wslGPU || args.ci ? playwrightChromes('chromium_headless_shell') : []),
   'C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser',
   ...playwrightChromes()];
@@ -65,9 +69,11 @@ const ANGLE = { vulkan: ['--use-angle=vulkan', '--enable-features=Vulkan'], 'gl-
 if (args['gpu-angle'] && !ANGLE[args['gpu-angle']]) { console.error(`--gpu-angle must be one of ${Object.keys(ANGLE)}`); process.exit(1); }
 const gpu = args['soft-gl'] ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
   : args['gpu-angle'] ? ANGLE[args['gpu-angle']]
+  : args.ci ? ['--use-angle=gl-egl', '--disable-accelerated-2d-canvas']
   : wslGPU ? ['--use-angle=gl']
   : process.platform === 'win32' ? ['--use-angle=d3d11'] : process.platform === 'darwin' ? ['--use-angle=metal'] : ['--use-gl=angle'];
-const gpuEnv = wslGPU ? { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/wsl/lib', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU_NAME || 'NVIDIA' } : {};
+const gpuEnv = args.ci ? { LIBGL_ALWAYS_SOFTWARE: '1', GALLIUM_DRIVER: 'llvmpipe' }
+  : wslGPU ? { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/wsl/lib', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU_NAME || 'NVIDIA' } : {};
 // Ubuntu 23.10+ blocks Chrome's user-namespace sandbox; headless rendering of local files doesn't need it.
 const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
 // Pages in one browser share a renderer process, so parallel workers each get their own browser (else they don't scale).

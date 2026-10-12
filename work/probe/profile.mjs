@@ -16,12 +16,13 @@ else {
   const dir = `${homedir()}/.cache/ms-playwright`;
   const shell = readdirSync(dir).filter(d => /^chromium_headless_shell-\d+$/.test(d)).sort().pop();
   exe = `${dir}/${shell}/chrome-headless-shell-linux64/chrome-headless-shell`; flags = ['--use-angle=gl', '--no-sandbox'];
-  Object.assign(env, { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/wsl/lib', MESA_D3D12_DEFAULT_ADAPTER_NAME: 'NVIDIA' });
+  if (args.soft) flags = ['--use-angle=gl-egl', '--no-sandbox'];   // CPU only: Mesa llvmpipe, like a GitHub runner
+  else Object.assign(env, { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/wsl/lib', MESA_D3D12_DEFAULT_ADAPTER_NAME: 'NVIDIA' });
 }
 const browser = await puppeteer.launch({
   executablePath: exe, headless: exe.includes('headless-shell') ? 'shell' : true, protocolTimeout: 0, env,
   userDataDir: fileURLToPath(new URL(`../../out/.profiles/diag-${process.platform}`, import.meta.url)),
-  args: ['--allow-file-access-from-files', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', ...flags, '--window-size=1920,1080']
+  args: ['--allow-file-access-from-files', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', ...flags, '--window-size=1920,1080', ...(process.env.EXTRA ? process.env.EXTRA.split(' ') : [])]
 });
 const page = await browser.newPage();
 await page.goto(pathToFileURL(resolve('studio.html')).href + '?render', { waitUntil: 'load', timeout: 120000 });
