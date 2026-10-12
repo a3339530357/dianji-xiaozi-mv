@@ -1,4 +1,4 @@
-# 测速：在 GitHub 的免费机器上（没有显卡）对比两种软件渲染 WebGL 的方式，看每帧多久。
+# 测速：在 GitHub 的免费机器上（没有显卡）逐个笔触计时（src/bench.js），对比两种软件渲染 WebGL 的方式。
 #   swiftshader：Chrome 自带的软件渲染（第一轮实测示例每帧 12～25 秒）
 #   llvmpipe：Mesa 的软件渲染（多线程 LLVM），用 chrome-headless-shell + --use-angle=gl-egl
 # 改动本文件并推送时自动跑；也可手动触发：gh workflow run bench.yml
@@ -28,14 +28,13 @@ jobs:
           echo "CHS=$(awk '{print $2}' chs.txt | tail -1)" >> "$GITHUB_ENV"
       - name: machine
         run: nproc; lscpu | grep -E 'Model name'; eglinfo -B 2>/dev/null | grep -iE 'renderer' | head -2 || true
-      - name: swiftshader (4 frames)
-        run: node render.mjs --soft-gl --sheet=3,5,7,9 --cols=4 --w=384 --out=out/check/swiftshader.jpg
-      - name: llvmpipe (4 frames)
-        env: { LIBGL_ALWAYS_SOFTWARE: '1', GALLIUM_DRIVER: llvmpipe }
-        run: node render.mjs --chrome="$CHS" --gpu-angle=gl-egl --sheet=3,5,7,9 --cols=4 --w=384 --out=out/check/llvmpipe.jpg
-      - name: llvmpipe, 2 workers (30 frames)
-        env: { LIBGL_ALWAYS_SOFTWARE: '1', GALLIUM_DRIVER: llvmpipe }
-        run: node render.mjs --chrome="$CHS" --gpu-angle=gl-egl --png --range=4:5 --workers=2 --out=out/bench_w2 | grep -E 'ready|frames'
+      - name: per primitive (llvmpipe, then swiftshader)
+        run: |
+          for L in b_empty b_wash b_washInk b_fillSmall b_fillBig b_hatch b_lines b_glow b_letters b_clawd; do
+            a=$(LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe node render.mjs --chrome="$CHS" --gpu-angle=gl-egl --loop=$L --sheet=0.1,0.6,1.1 --cols=3 --w=384 --out=out/check/llvm_$L.jpg | grep -o 'ms/frame:.*')
+            b=$(node render.mjs --soft-gl --loop=$L --sheet=0.1,0.6,1.1 --cols=3 --w=384 --out=out/check/ss_$L.jpg | grep -o 'ms/frame:.*')
+            echo "$L | llvmpipe $a | swiftshader $b"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: bench-check, path: out/check, retention-days: 7 }
