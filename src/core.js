@@ -277,13 +277,13 @@ async function setup() {
   brush.scaleBrushes(5); defineBrushes();
   paperG = makePaper(); grainC = makeGrain(); glowTex = makeGlowTex(); letG = createGraphics(W, H); letG.pixelDensity(1);
   outC = document.getElementById('out'); outX = outC.getContext('2d');
-  await document.fonts.load('100px "Permanent Marker"');
+  await Promise.all(['100px "Permanent Marker"', '100px "Ma Shan Zheng"', '100px "ZCOOL KuaiLe"'].map(f => document.fonts.load(f, '电击小子火星大力拳')));
   window.ready = true;
   if (!location.search.includes('render')) devUI();
 }
 function draw() {
   if (!window.ready) return;
-  LETTERS = []; CAM = LAST_CAM = null;
+  LETTERS = []; CAM = LAST_CAM = null; POST = {};
   push(); translate(-W / 2, -H / 2);
   BOILN = Math.floor(T * BOIL); CLAWD_N = 0; boilSeed('frame'); noiseSeed(77);
   image(paperG, 0, 0);
@@ -293,8 +293,11 @@ function draw() {
 function composite(t) {
   const c = outX;
   c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+  c.filter = POST.filter || 'none';             // impact frames, mono (fx.js)
   c.drawImage(drawingContext.canvas, 0, 0, W, H);
   drawLetters(c);
+  if (POST.overlay) POST.overlay(c, t);         // 2D text over the painting, under the grain (the karaoke band)
+  c.filter = 'none';
   c.globalCompositeOperation = 'multiply'; c.drawImage(grainC, 0, 0);
   c.globalCompositeOperation = 'source-over';
 }

@@ -21,6 +21,7 @@ function drawWorld(t) {
     CAM = null;
   }
   flushLetters();
+  if (!window.LOOP) karaoke(t);
 }
 
 function placeholder(t) {
