@@ -19,7 +19,7 @@ import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
@@ -71,8 +71,13 @@ const gpuEnv = wslGPU ? { GALLIUM_DRIVER: 'd3d12', LD_LIBRARY_PATH: '/usr/lib/ws
 // Ubuntu 23.10+ blocks Chrome's user-namespace sandbox; headless rendering of local files doesn't need it.
 const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
 // Pages in one browser share a renderer process, so parallel workers each get their own browser (else they don't scale).
+// Profiles live in out/.profiles next to this script, never in the system temp dir, and are reused so the GPU shader
+// cache stays warm between runs. One per worker slot; sheets/stills and parallel runs use different slots.
+const PROFILES = fileURLToPath(new URL('./out/.profiles/', import.meta.url));
+let slot = 0;
 const launch = () => puppeteer.launch({
   executablePath: CHROME, headless: CHROME.includes('headless-shell') ? 'shell' : true, protocolTimeout: 0, env: { ...process.env, ...gpuEnv },
+  userDataDir: `${PROFILES}${process.platform}-${args.frames || args.png ? 'w' : 'p'}${slot++}`,
   args: [...sandbox, '--allow-file-access-from-files', '--ignore-gpu-blocklist', ...gpu, '--enable-gpu-rasterization', '--window-size=1920,1080', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']
 });
 const browser = await launch(), extra = [];
