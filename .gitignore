@@ -3,3 +3,10 @@ out/
 work/.venv/
 work/analysis/*.wav
 *.tmp
+
+# 不公开：原曲（仓库里只放加密版）、原 MV 截图、加密口令
+assets/*.m4a
+assets/*.mp3
+work/ref/
+work/analysis/subs.png
+work/secrets/

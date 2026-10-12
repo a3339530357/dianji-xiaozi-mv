@@ -1,0 +1,36 @@
+# 测速：在 GitHub 的免费机器上（没有显卡，Chrome 用 SwiftShader 软件模拟 WebGL）渲染示例，看每帧多久、开几路合适。
+# 手动触发：gh workflow run bench.yml
+name: bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      range:
+        description: 测速用的时间段（秒，a:b）
+        default: '4:6'
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - name: machine
+        run: |
+          nproc; lscpu | grep -E 'Model name|^CPU\(s\)'; free -g | head -2
+          google-chrome --version
+      - name: sheet (5 frames)
+        run: node render.mjs --soft-gl --sheet=1,3,5,7,9 --cols=5 --w=384 --out=out/check/ci_demo.jpg
+      - name: workers 1-4
+        run: |
+          for w in 1 2 3 4; do
+            echo "=== $w workers"
+            node render.mjs --soft-gl --png --range=${{ inputs.range }} --workers=$w --out=out/bench_w$w | grep -E 'ready|frames'
+          done
+      - uses: actions/upload-artifact@v4
+        with: { name: bench-check, path: out/check, retention-days: 7 }
