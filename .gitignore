@@ -1,0 +1,5 @@
+node_modules/
+out/
+work/.venv/
+work/analysis/*.wav
+*.tmp
